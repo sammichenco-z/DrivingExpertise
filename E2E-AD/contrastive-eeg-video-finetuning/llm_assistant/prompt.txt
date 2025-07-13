@@ -1,0 +1,244 @@
+Hello, Copilot!
+Now I am conduction a project. Which wants to align human's EEG with video via contrastive learning.
+We mimic the idea of Contrastive Language-Image Pre-training (CLIP).
+
+We use two model: an EEG encoder and a video encoder, the encoders are responsible for projecting eeg/video data into an embedding in a high-dimensional space, then we can use contrstive learning method to compute the loss and then update the parameters via gradient descent.
+
+On thing we need pay attention is that: our dataset small, only 2 hours. So we use the pretrained weights of the EEG encoder and the video encoder. And then fine-tuning on our dataset.
+
+Then, let me introduce the encoder we used:
+- EEG encoder: we use the Large Brain Model (LaBraM) of a paper which published on ICLR 2024. Which mimic the pretraining way of large language models and use self-supervised learning method.
+- Video encoder: we use swin video encoder.
+
+And for the fine-tuning method, we have three ideas:
+- Add adaptive layers + freeze encoder.
+- Add adaptive layers + train encoder.
+- Add adaptive layers + use PEFT method to finetune encoder (like LoRA).
+
+"Add adaptive layers" means that we add two mlp layers after each encoder, and let eeg and video be projected  to the same dimension space, so that we can compute the dot product of two feature vector, and then conduct the contrastive learning.
+
+The directory I attached is my current version of the project, and now we encounter several problems, I need your help:
+1. the loss is not converge (actually, it is not change)
+2. it seems that when I monitor the gpu state via `watch gpustat`, about half of the time, the gpu usages is `0%` even though the loss is computing and the model is training.
+3. Now, we only try the first finetuning method (Add adaptive layers + freeze encoder), and the loss is not converge. And I tried several things, including:
+- reducing training parameters: reduce the dimension of the dot product computing from 1024 to 200. More specifically, for mlp of eeg encoder: [200, 512, 1024] -> [200, 200, 200]; and for mlp of video encoder: [1024, 512, 1024] -> [1024, 200, 200].
+- change the temperature from a trainable parameter to a fixed parameter. The temperature is used in the contastive loss.
+- reducing the batch_size from 320 to 32 to 16.
+- reducing the learning rate from 1e-4 to 1e-2.
+- comment the mlp paramters extra initialzation in eeg encoder.
+
+Maybe we can design some experienment to find the bug and fix this problems.
+
+and if you have any suggestion or question about the code base, feel free to ask me.
+
+Do you understand the background of my currently problem and what do you think of that?
+
+
+
+============================================================================================
+
+Thanks Copilot!
+Then, Let's first solve the loss unchange question.
+
+Actually, now I use the script `train_ddp.py` to train model.
+
+Although it is written in ddp, I usually run the command:
+```
+CUDA_VISIBLE_DEVICES=2 torchrun --nproc_per_node=1 --master_port=29502 /home/tsinghuaair/zhengxj/projects/cognitive-driving-world-model/contrastive-eeg-video-finetuning/src/run_model/train_ddp.py
+```
+
+And I only use one GPU to run.
+
+At line 108, I load parameters for both EEG encoder and the Video encoder. The method `load_parameters()` is a method of `contrastive_model.py`.
+
+Below is the outputted message every time I run the code:
+```
+Subject Type (trainset): novice
+Number of data pairs: 861
+Subject Type (valset): all
+Number of data pairs: 236
+
+Load ckpt from /home/tsinghuaair/zhengxj/projects/cognitive-driving-world-model/contrastive-eeg-video-finetuning/ckpts/eeg_encoder_base.pth
+===> Load state_dict of EEG encoder by model_key = model
+Weights of NeuralTransformer not initialized from pretrained model: ['fc_norm.weight', 'fc_norm.bias', 'head.1.weight', 'head.1.bias', 'head.3.weight', 'head.3.bias']
+Weights from pretrained model not used in NeuralTransformer: ['mask_token', 'lm_head.weight', 'lm_head.bias', 'norm.weight', 'norm.bias']
+===> Loaded checkpoint from video encoder from /home/tsinghuaair/zhengxj/projects/cognitive-driving-world-model/contrastive-eeg-video-finetuning/ckpts/video_encoder_base_200.safetensors
+Missing keys: ['proj.1.weight', 'proj.1.bias', 'proj.3.weight', 'proj.3.bias']
+Trainable parameters in EEG encoder:
+fc_norm.weight: torch.Size([200])
+fc_norm.bias: torch.Size([200])
+head.1.weight: torch.Size([200, 200])
+head.1.bias: torch.Size([200])
+head.3.weight: torch.Size([200, 200])
+head.3.bias: torch.Size([200])
+Trainable parameters in Video encoder:
+proj.1.weight: torch.Size([200, 1024])
+proj.1.bias: torch.Size([200])
+proj.3.weight: torch.Size([200, 200])
+proj.3.bias: torch.Size([200])
+Total trainable parameters: 80800+245200=326000
+```
+
+===========================================================================
+
+And you mentioned the parameter initialization problem, yes, I do not use any initialization trick, I just define a network (e.g. nn.Linear) and then let the network training. You can refer to the `self.head` `labram.py` and `self.proj` in `video_encoder.py`, for your convenience, I paste relevant code below:
+
+In `labram.py` I define the head to mlp of [200, 200, 200], and comment the initialization method.
+```
+        self.head = create_mlp(input_dim=embed_dim, hidden_dims=mlp_layers[:-1], output_dim=mlp_layers[-1]) if num_classes > 0 else nn.Identity()
+
+        if self.pos_embed is not None:
+            trunc_normal_(self.pos_embed, std=.02)
+        if self.time_embed is not None:
+            trunc_normal_(self.time_embed, std=.02)
+        trunc_normal_(self.cls_token, std=.02)
+        # trunc_normal_(self.mask_token, std=.02)
+        if isinstance(self.head, nn.Linear):
+            trunc_normal_(self.head.weight, std=.02)
+            
+        # if isinstance(self.head, nn.Sequential):
+        #     for layer in self.head:
+        #         if isinstance(layer, nn.Linear):
+        #             trunc_normal_(layer.weight, std=.02)
+        
+        self.apply(self._init_weights)
+        self.fix_init_weight()
+
+        if isinstance(self.head, nn.Linear):
+            self.head.weight.data.mul_(init_scale)
+            self.head.bias.data.mul_(init_scale)
+            
+        # if isinstance(self.head, nn.Sequential):
+        #     for layer in self.head:
+        #         if isinstance(layer, nn.Linear):
+        #             layer.weight.data.mul_(init_scale)
+        #             layer.bias.data.mul_(init_scale)
+```
+
+In `video_encoder.py`, I also only create a mlp without initialization.
+```
+        if "mlp_layers" in config.keys():
+            mlp_layers = config['mlp_layers']
+            self.proj = create_mlp(self.swin_transformer.num_features, mlp_layers[:-1], mlp_layers[-1])  # MLP for output
+```
+
+The method of `create_mlp` is as follows:
+```
+def create_mlp(input_dim, hidden_dims, output_dim):
+    layers = []
+    dims = [input_dim] + hidden_dims + [output_dim]
+    layers.append(nn.ReLU())
+    for i in range(len(dims) - 1):
+        layers.append(nn.Linear(dims[i], dims[i + 1]))
+        if i < len(dims) - 2:
+            layers.append(nn.ReLU())
+    return nn.Sequential(*layers)
+```
+
+This is maybe a problem, is there any other problem we need to focus on? I want to first collect all relevant questions and then valid them one by one and find:
+do they contribute to the unchange loss.
+
+====================================================================
+
+
+Hello, Copilot!
+
+Yesterday, I tried the parameter initialized method you mentioned.
+
+at first, I set the epoch=40, and found that the loss keep unchange at the first 35 epoch, and begin to reduce from 35. and when it comes to epoch 40, it also urge to reduce.
+
+So, I set epoch from 40 to 120, and have a try. I found that the loss on the training set is reducing from epoch 55 to epoch 115, and the loss shocks up and down on the val set. It seems that the model is overfitting on the train set.
+
+Then, I want to find that what will happened if I set the epoch to 360. But this time, the loss is unchange from 40 to 360 (the loss has some changes in 10-40, the same as when I set epoch=40, 120).
+
+Why this happened? It is strange.
+
+
+
+===================================================================================
+
+
+Helloc Copilot! I am back!
+
+Remember we plan to tune the learning rate?
+we need to do four experiemnts with learning rate equals to: 5e-4, 1e-3, 5e-5 and 1e-5 respectively.
+
+Now, the experiment of 5e-5 is still conducting. But I have finished the other three one, let me share them with you~
+
+For learning rate equals to 5e-4 and 1e-3 (which bigger than the original 1e-4): I think the loss has some change, the curve is different with the original one. But I think the loss both on the training set and on the testset are still not converge (just up and down). The range of loss is [2.6, 2.8], the change is unstable.
+
+However, for learning rate equals to 1e-5, while the loss on the val set is not converge and up and down, the loss on the training set is keep reducing! From 2.773 to 2.517. The curve is just like a line with negative slope.
+
+Any suggestions? I think the experiment of lr = 1e-5 says that our model begins to learn something from the data (although it is overfitting, but we can change this, right?)
+
+
+=======================================================================
+
+Hello! Copilot! I am back again! The new experiment result is:
+
+The experiment of learning rate: If we set learning rate equals to 5e-5, the loss on the training set and eval set are first converge (for 20 epochs) and then recover to the original value, then converge and also recover to the original value. Finally, the loss on training set and val set are stable and unchange.
+The experiment of dropout rate. Now, I only finish the experiment of dropout rate equals to 0.1. We set learning rate equals to 1e-5 (as this learning rate shows overfitting on the training set). I found that the loss on both training set and val set are stable, not change from begin to end...... Do you think that means underfitting??? Maybe the p is to large for currect version model (we only train the mlp layers of two encoder).
+Any suggestions?
+
+
+
+============================================================================
+
+
+Thanks for your feed back, but let me clarify.
+
+Do you remember the experiment of learning rate? We disign four experiment with learning rate equals to 1e-3, 5e-4, 5e-5, 1e-5. When conducting these experiment, I am sure the learning rate are unchange from begin to the end. (I use Adam optimizer). If you remeber, maybe you can summarize the results. The first result I provided is for this experiment with learning rate = 5e-5. And in these experiment, we do not use any regularization tricks.
+
+Thanks for your suggestions to current situations. You mentioned that I can first try a smaller dropout (p=0.05 or p =0.01). If that is not help, I should increse the model capacity. And for updating the model capacity, there also seveal method:
+
+larger the parameters in the mlp layers
+unfreezing the last few layers of two decoder
+use PEFT method, like LoRA
+But now, my question is that, when we try the dropout, we have know that currently, learning rate equals 1e-5 will lead the model overfitting on the training set (I mean, we fix this parameters, only contro the variable of dropout rate). If we change the model capacity (In my understanding, it means the number of fine-tuning parameters), we add a new parameter. We do not sure that whether or not the change of this parameter will affect others. For example, lr=1e-5 leads the current model overfitting on the training set, which motivate us to add some regularization tracks (i.e. dropout rate), but what if the lr-1e=5 not leads the model that unfreeze some paramaters overfitting on the training set?
+
+I am sorry, my thoughts now is a little disorganization. Can you understand my meaning?
+
+So, if we have show that, use regularization tracks do not save our overfitting model, we can only try change the capacity of our model. And we should tuing the hyper parameters from the begining? We should first tuning the learning rate (do not use regularization trick), and then for a loss-converging lr version, we add regularization trick and tuning the hyper parameters of dropout rate and weight decay?
+
+What do you think of it?
+
+
+=============================================================================
+
+
+
+Hello Copilot! Good morning, I am back!
+
+The experiment of dropout is finished, the result is as follows, I set epoch of 120 for all these experiments:
+- For dropout rate equals 0 (aka, the baseline, the experiement of lr = 1e-5 above), for the first 10 epoch, the loss on the training set and val set are unchange, afterwards, the loss on tarining set is keeping reducing, and the loss on val set is first reducing to a point, then increase, then reducing to another point, and finally increase to the original value.
+- For dropout rate equals to 0.01 (and other hyperparameters keep the same with the baseline), the loss on both the training set and the val set are unchange, until epoch 100, then the loss on training set and the eval set are keep reducing! I think if I increase the trainig epoch, the loss will keep reducing!
+- For dropout rate equals to 0.05, 0.1, 0.2, 0.3 and 0.5, the loss on both training set and val set are unchange.
+
+What do you think of the experiment results?
+I think the experiment on the dropout rate equals to 0.01 is really exciting, however, it is strange the loss keep unchanging for the first 100 epoch......
+
+And I am not sure whether or not can we let the loss converge for larger dropout rate if we incrase the number of training epochs. (do you think dropout rate equals to 0.01 is too small)?
+
+Any suggestions?
+
+
+===================================================================================
+
+Hello, Copilot!
+Good morining, I am back!
+The experiment of increasing learning rate at dropout rate equals to 0.01 is out.
+I test five learning rate: 1e-5 is the baseline, 1.1e-5, 1.2e-5, 1.5e-5, 2e-5, 3e-5.
+
+The basic observation is:
+1. all loss curves on training set are all reducing (but the start point is different, for bigger learning rate, the start reducing point is earlier).
+2. loss curves on eval set can be divided in to two groups:
+    - for larger learning rate (3e-5, 2e-5 and 1.5e-5): the loss is first reducing to the lowest point and then keeping increasing
+    - for smaller learning rate (1e-5, 1.1e-5, 1.2e-5, and 1e3-5): the loss is keep reducing, and is seems that at epoch 120, the loss of them are equal (nearly the lowest point of larger learning rate group)
+    - for larger learning rate, the start reducing point will be earlier.
+
+Now, as next experiment, we will change a server, so I have to do another experiment to valid the server change do not change the loss curve (and we have to re download the dataset and suffle to train set and val set/ test set)
+
+Then, I want to test the weight decay method to prevent overfitting.
+
+What do you think of the result of the experiment? Does the loss increasing on eval set of larger learning rate group means if we keep training the model, it still will overfitting on the training set (loss increase on eval set)
+Which one learning rate do you think should I choose for following experiement?

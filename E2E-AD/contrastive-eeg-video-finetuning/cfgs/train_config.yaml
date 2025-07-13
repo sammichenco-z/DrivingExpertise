@@ -1,0 +1,37 @@
+# define global variables for training
+# form the `version_identifire`, `eeg_dir`, `video_dir`, `clip_info_dir`, 
+# `temperature_ckpt_path`, `eeg_encoder.ckpt_save_path`, `video_encoder.ckpt_save_path` in the training scripts
+
+duration: 2
+fps: 2
+subject_type: "all" # "expert" or "novice" or "all"
+seed: 42
+
+# version_identifier = duration_{}_fps_{}_{subject_type}_{extra_identifier}
+extra_identifier: "debug_x_default"
+
+data:
+  dataset_dir: "/home/tsinghuaair/zhengxj/projects/cognitive-driving-world-model/datasets/real_car/"
+  eeg_area: ["visual", "spatial", "semantic", "decision"]
+
+model:
+  epochs: 120
+  batch_size: 16
+  learning_rate: 1e-5
+  temperature: 0.07
+  dropout: None
+  weight_decay: None
+  # temperature_ckpt_path: "ckpts/duration_0.4_fps_10_expert/temperature.safetensors"
+  fine_tuning_policy: "missing_trainable" # "all_trainable" or "missing_trainable"
+  project_dir: "/home/tsinghuaair/zhengxj/projects/cognitive-driving-world-model/contrastive-eeg-video-finetuning"
+
+  eeg_encoder:
+    load_fine_tuned_ckpt: False
+    ckpt_load_path: "ckpts/eeg_encoder_base.pth"
+    mlp_layers: [200, 200]
+
+  video_encoder:
+    ckpt_load_path: "ckpts/video_encoder_base_new.safetensors"
+    # ckpt_load_path: None
+    mlp_layers: [200, 200]
+
