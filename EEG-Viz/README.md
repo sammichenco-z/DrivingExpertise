@@ -96,12 +96,6 @@ python scripts/freq_topomap_real.py \
   --t-range 50-550 150-250
 ```
 
-## Contributing
+## Data
 
-1. Fork the repository and create a new branch: `git checkout -b feature/your-feature`.
-2. Make your changes and add tests or example notebooks as needed.
-3. Commit with semantic messages and open a Pull Request describing your changes.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+If you need our data, please follow the download link in paper, or contact us :)
