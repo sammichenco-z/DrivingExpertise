@@ -1,7 +1,7 @@
 
 # EEG‑Viz
 
-A Python toolkit for reproducible EEG data visualization in driving hazard detection research, supporting both event‑related potentials (ERP) and frequency‑domain topographic maps (topomaps) for expert and novice driver comparisons.
+A Python toolkit for reproducible EEG data visualization in driving hazard detection research, supporting both event‑related potentials (ERP) and frequency‑domain topographic maps (topomaps) for expert and novice driver comparisons. 
 
 ## Repository Structure
 
