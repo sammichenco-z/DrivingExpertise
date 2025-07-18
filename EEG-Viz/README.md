@@ -11,7 +11,7 @@ A Python toolkit for reproducible EEG data visualization in driving hazard detec
 │   ├── freq_topomap_virtual.py   # Frequency‑domain topomaps for virtual environment
 │   └── freq_topomap_real.py      # Frequency‑domain topomaps for real‑world data
 ├── environment.yml               # Conda environment specification
-├── requirements.txt              # pip dependencies
+├── requirements.txt              # pip dependencies。
 └── README.md                     # Project overview and usage
 ```
 
