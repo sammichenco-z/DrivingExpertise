@@ -46,7 +46,7 @@ pip install -r requirements.txt
 ### 1. ERP Visualization
 
 ```bash
-python scripts/erp_viz.py \
+python scripts/erp_viz.ipynb \
   --set-ref-dir /path/to/eeglab/sets \
   --set-ref-file subject01.set \
   --csv-dir /path/to/csv_time/output \
@@ -65,7 +65,7 @@ python scripts/erp_viz.py \
 ### 2. Frequency‑Domain Topomaps (Virtual)
 
 ```bash
-python scripts/freq_topomap_virtual.py \
+python scripts/freq_topomap_virtual.ipynb \
   --set-ref-dir /path/to/eeglab/sets \
   --set-ref-file subject01.set \
   --csv-dir /path/to/csv_freq/output \
@@ -82,7 +82,7 @@ python scripts/freq_topomap_virtual.py \
 ### 3. Frequency‑Domain Topomaps (Real)
 
 ```bash
-python scripts/freq_topomap_real.py \
+python scripts/freq_topomap_real.ipynb \
   --set-ref-dir /path/to/eeglab/sets \
   --set-ref-file subject01.set \
   --csv-dir /path/to/csv_freq/output \
