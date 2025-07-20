@@ -1,4 +1,3 @@
-<img width="468" height="12" alt="image" src="https://github.com/user-attachments/assets/a39d0273-963e-4a28-8f24-3d3523c0a566" /><img width="468" height="12" alt="image" src="https://github.com/user-attachments/assets/d0c0dac2-4ccf-441b-a9d5-97f16121c5e1" />
 # EEG‑Viz
 
 A Python toolkit for reproducible EEG data visualization in driving hazard detection research, supporting both event‑related potentials (ERP) and frequency‑domain topographic maps (topomaps) for expert and novice driver comparisons. 
@@ -18,10 +17,19 @@ A Python toolkit for reproducible EEG data visualization in driving hazard detec
 ## Features
 
 * **ERP Visualization**: Generates publication‑quality line plots with baseline correction and shaded temporal windows for channels of interest.
+  * **"Expert Control":       "#1F77B4"
+      "Expert Overt Hazard":  "#6699CC"
+      "Expert Covert Hazard": "#99BBDD"
+      "Novice Control":       "#FF7F0E"
+      "Novice Overt Hazard":  "#FFAA66"
+      "Novice Covert Hazard": "#FFCCAA"
+
+
 * **Frequency‑Domain Topomaps**: Computes mean power in dB across specified bands and time windows for expert vs. novice drivers, with:
 
-  * **Sequential maps** (white→blue) for each group
   * **Diverging difference maps** (orange→white→blue) highlighting Expert − Novice contrasts
+  * Expert > Novice - blue
+  * Novice > Expert - orange
 
 ## Installation
 
