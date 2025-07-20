@@ -1,4 +1,4 @@
-
+<img width="468" height="12" alt="image" src="https://github.com/user-attachments/assets/a39d0273-963e-4a28-8f24-3d3523c0a566" /><img width="468" height="12" alt="image" src="https://github.com/user-attachments/assets/d0c0dac2-4ccf-441b-a9d5-97f16121c5e1" />
 # EEG‑Viz
 
 A Python toolkit for reproducible EEG data visualization in driving hazard detection research, supporting both event‑related potentials (ERP) and frequency‑domain topographic maps (topomaps) for expert and novice driver comparisons. 
@@ -59,7 +59,7 @@ python scripts/erp_viz.ipynb \
   --sfreq 1000
 ```
 
-* **--envs**: `v` for virtual, `r` for real
+* **--envs**: `v` for virtual - simulated scenarios, `r` for real - real-life scenes
 * Generates `.png` and `.svg` Figures per channel under `<output-dir>`
 
 ### 2. Frequency‑Domain Topomaps (Virtual)
