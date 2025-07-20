@@ -17,12 +17,12 @@ A Python toolkit for reproducible EEG data visualization in driving hazard detec
 ## Features
 
 * **ERP Visualization**: Generates publication‑quality line plots with baseline correction and shaded temporal windows for channels of interest.
-  * **"Expert Control":       "#1F77B4"
-  * **"Expert Overt Hazard":  "#6699CC"
-  * **"Expert Covert Hazard": "#99BBDD"
-  * **"Novice Control":       "#FF7F0E"
-  * **"Novice Overt Hazard":  "#FFAA66"
-  * **"Novice Covert Hazard": "#FFCCAA"
+  * "Expert Control":       "#1F77B4"
+  * "Expert Overt Hazard":  "#6699CC"
+  * "Expert Covert Hazard": "#99BBDD"
+  * "Novice Control":       "#FF7F0E"
+  * "Novice Overt Hazard":  "#FFAA66"
+  * "Novice Covert Hazard": "#FFCCAA"
 
 
 * **Frequency‑Domain Topomaps**: Computes mean power in dB across specified bands and time windows for expert vs. novice drivers, with:
